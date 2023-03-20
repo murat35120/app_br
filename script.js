@@ -5,9 +5,11 @@ let abonent={
 	port:''
 };
 let counter=0;
+
+
 class MyClass { //задача очереди: создать и добавить генераторы,по очереди перебирать их
 	constructor(writer) {
-		this.writer1 = writer; //функция через которую отправляем сообщения
+		this.writer = writer; //функция через которую отправляем сообщения
 	}
 	queue=new Set(); //очередь
 	done=true; //текущее состояние очереди
@@ -16,21 +18,22 @@ class MyClass { //задача очереди: создать и добавит�
 	buffer={};
 	timer;
 	listener(data) {//получатель ответных сообщений
+	console.log("answer - "+data);
 		clearTimeout(aa.timer);
 		if(this.buffer){
 			if(this.buffer.callback){
 				this.buffer.callback(data);
-				this.buffer.gen.next(data);
 			}
+			this.buffer.gen.next(data);
 		}
 	}
 	add(func, data, callback) {//функция добавления в очередь
 	//console.log(data);
 		let gen;
 		if(data){
-			gen=func(data);
+			gen=func.call(this, data);
 		}else{
-			gen=func();
+			gen=func(this);
 		}
 		let step={gen, callback};
 		if(this.done){
@@ -60,15 +63,14 @@ class MyClass { //задача очереди: создать и добавит�
 let aa = new MyClass(simulator);
 
 aa.add(gen, 13, pt);
-aa.add(gen, 23, pt);
+aa.add(gen, 23);
 aa.add(gen, 33, pt);
 
 function *gen(data){
-	let tm=3000;
-	aa.writer1(data);
-	aa.timer=setTimeout(()=>aa.next(), tm);
+	this.writer(data);
+	this.timer=setTimeout(()=>this.next(), 2000);
 	let answer = yield;
-	aa.next();
+	this.next();
 }
 
 function pt(data){
