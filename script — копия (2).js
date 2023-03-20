@@ -4,35 +4,38 @@ let abonent={
 	domain:'',
 	port:''
 };
-let counter=0;
-class MyClass { //задача очереди: создать и добавить генераторы,по очереди перебирать их
-	constructor(writer) {
-		this.writer1 = writer; //функция через которую отправляем сообщения
+
+function Step(params, obj, func, back, msg) {
+	this.params = params;
+	this.obj = obj;	
+	this.func = func;
+	this.back = back;
+	this.msg = msg;
+}
+let queue=new Set(); //очередь
+let iterator = {};//итератор для очереди
+let done=true;
+
+Class main_queue { //задача очереди: создать и добавить генераторы,по очереди перебирать их
+	constructor(writer, timer) {
+		this.writer = writer;
+		this.timer = timer;
+		this.comm.writer=this.writer;
+		this.comm.next=this.next;
 	}
 	queue=new Set(); //очередь
-	done=true; //текущее состояние очереди
-	callback={}; //функция вобратного вызова устанавливается при добавлении в очередь
-	iterator={}; //итератор
+	done=true;
+	flag=false;
+	comm={};
+	callback={};
+	iterator={};
 	buffer={};
-	timer;
-	listener(data) {//получатель ответных сообщений
-		clearTimeout(aa.timer);
-		if(this.buffer){
-			if(this.buffer.callback){
-				this.buffer.callback(data);
-				this.buffer.gen.next(data);
-			}
-		}
+	listener(data) {
+		
 	}
-	add(func, data, callback) {//функция добавления в очередь
-	//console.log(data);
-		let gen;
-		if(data){
-			gen=func(data);
-		}else{
-			gen=func();
-		}
-		let step={gen, callback};
+	add(func, data) {
+		let step=func(data);
+		step.next(this.comm);
 		if(this.done){
 			this.queue.clear();
 			this.queue.add(step);
@@ -40,50 +43,87 @@ class MyClass { //задача очереди: создать и добавит�
 			let result=this.iterator.next();
 			this.done=result.done;
 			this.buffer=result.value;
-			this.buffer.gen.next();
 		}else{
 			this.queue.add(step);
 		}
 
 	}
-	next() { //следующий шаг в очереди
-		let result=this.iterator.next();
-		this.done=result.done;
-		this.buffer=result.value;
-		if(!this.done){
-			this.buffer.gen.next();
+	pause(flag) {
+		this.flag=flag;
+	}
+	next() {
+		if(!this.flag){
+			//this.callback=iterator.next();
+			let result=this.iterator.next();
+			this.done=result.done;
+			this.buffer=result.value;
 		}
 	}
 }
 
-
-let aa = new MyClass(simulator);
-
-aa.add(gen, 13, pt);
-aa.add(gen, 23, pt);
-aa.add(gen, 33, pt);
-
-function *gen(data){
-	let tm=3000;
-	aa.writer1(data);
-	aa.timer=setTimeout(()=>aa.next(), tm);
-	let answer = yield;
-	aa.next();
+function* generate(obj) { //(data, callback, timer)
+	//{data, callbac, timer}
+	let comm = yield ;
+	comm.writer(obj.data);
+	let answer = yield callback;
+	callback(answer);
+	comm.next();
 }
 
-function pt(data){
-	console.log("print - "+data);
-}
-
-function simulator (data){
-	//console.log(data);
-	counter=counter+1;
-	if((counter+data)!=26){
-		setTimeout(()=>aa.listener.call(aa, counter+data), 500);
+function add_step(step){
+	if(!done){
+		queue.add(step);
+	}else{
+		done=false;
+		queue.clear();
+		iterator = queue[Symbol.iterator]();
+		queue.add(step);
+		buffer.show();
+		first=true;
 	}
 }
 
+let buffer={
+	step:{},
+	show(msg1){
+		console.log("step");
+		if(this.step){
+			let msg= new TextDecoder("utf-8").decode(msg1);
+			clearTimeout(this.timer);
+			let txt="";
+			if(this.step.msg){
+				txt=this.step.msg+" ";
+			}
+			if(msg){
+				pole.innerText=pole.innerText+txt+msg;
+			} else{
+				pole.innerText=pole.innerText+txt+"OK\r\n";
+			}
+			if(this.step.back){
+				this.step.back(msg);
+			}
+			let result= iterator.next();
+			done=result.done;
+			this.step=result.value;
+			if(!done){
+				
+				if(this.step.func){
+					if(this.step.params){
+						this.step.obj[this.step.func](this.step.params);
+						//abonent.writer.write(this.step.params);
+					}else{
+						this.step.func();
+					}
+				}
+				this.timer=setTimeout(this.show, 200, "stopped by timeout");
+			}
+		}else{
+			done=true;
+		}
+	},
+	timer:{}
 
+};
 
 let comm={
 	ax_get(func, url){//стандартная функция отправки сообщения

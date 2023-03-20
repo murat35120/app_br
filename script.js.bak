@@ -78,7 +78,7 @@ function pt(data){
 function simulator (data){
 	//console.log(data);
 	counter=counter+1;
-	if((counter+data)!=26){
+	if((counter+data)!=25){
 		setTimeout(()=>aa.listener.call(aa, counter+data), 500);
 	}
 }
