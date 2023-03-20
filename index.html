@@ -1,0 +1,53 @@
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <TITLE>Z-2 Base / Z-1</TITLE>
+     <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class='main'>
+    <div class='top'>Адаптер Z-2 Base / Z-1</div>
+    <div class='content'>
+		<div class='centre'>
+			<div data-line='Controls'>
+				<div data-click='power'  title = "Вкл/выкл питание" >POWER</div>
+				<div data-click='beep'  title = "Вкл/выкл канал BEEP" >BEEP</div>
+				<div data-click='ledr'  title = "Вкл/выкл канал LED R" >LED R</div>
+				<div data-click='ledg'  title = "Вкл/выкл канал LED G" >LED G</div>
+			</div>
+			<div data-line='number'>
+				<input  type="text" id="num_key">
+				<div data-click='wiegand'  title = "Отправить номер в формате Wiegand" >Wiegand</div>
+				<div data-click='dallas' id="dallas" title = "Отправить номер в формате Dallas" >Dallas</div>
+			</div>
+			<div data-line='formats'>
+				<div>Строка формата</div>
+				<input  type="text" id="formats" value="%02X %02X %02X %02X %02X %02X %02X %02X\r\n" >
+			</div>
+			<div data-line='formats'>
+				<div>Строка аргументов</div>
+				<input  type="text" id="arguments" value="b0 b1 b2 b3 b4 b5 b6 b7" >
+			</div>
+			<div data-line='formats'>
+				<div>Строка "нет карты"</div>
+				<input  type="text" id="nocard" value="No Card">
+			</div>
+			<div data-line='pole'>
+				<div id="pole"></div>
+			</div>
+
+		</div>
+		<div class='section'>
+			<div data-click='recovery' title = "Выбрать порт"></div>
+			<div data-click='typical'  title = "Информация об адаптере" ></div>	
+			<div data-click='service'  title = "Настройки адаптера" ></div>				
+			<div data-click='clear'  title = "Очистить поле" ></div>
+			<div data-click='out'  title = "Прочитать настройки" ></div>				
+			<div data-click='in'  title = "Записать настройки" ></div>			
+		</div>
+    </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
