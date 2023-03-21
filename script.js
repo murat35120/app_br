@@ -4,7 +4,7 @@ let abonent={
 	domain:'',
 	port:''
 };
-let counter=0;
+//let counter=0;
 
 
 class MyClass { //задача очереди: создать и добавить генераторы,по очереди перебирать их
@@ -15,10 +15,9 @@ class MyClass { //задача очереди: создать и добавит�
 	done=true; //текущее состояние очереди
 	callback={}; //функция вобратного вызова устанавливается при добавлении в очередь
 	iterator={}; //итератор
-	buffer={};
-	timer;
+	buffer={}; //текущая команда
+	timer; //указатель на текущий таймер ответа
 	listener(data) {//получатель ответных сообщений
-	console.log("answer - "+data);
 		clearTimeout(aa.timer);
 		if(this.buffer){
 			if(this.buffer.callback){
@@ -27,13 +26,12 @@ class MyClass { //задача очереди: создать и добавит�
 			this.buffer.gen.next(data);
 		}
 	}
-	add(func, data, callback) {//функция добавления в очередь
-	//console.log(data);
+	add(func,  data, comment, callback) {//функция добавления в очередь
 		let gen;
 		if(data){
-			gen=func.call(this, data);
+			gen=func.call(this, data, comment);
 		}else{
-			gen=func(this);
+			gen=func.call(this,'',comment);
 		}
 		let step={gen, callback};
 		if(this.done){
@@ -49,7 +47,10 @@ class MyClass { //задача очереди: создать и добавит�
 		}
 
 	}
-	next() { //следующий шаг в очереди
+	next(comment) { //следующий шаг в очереди
+		if(comment){
+			control.writer(comment); //пишем в окно
+		}
 		let result=this.iterator.next();
 		this.done=result.done;
 		this.buffer=result.value;
@@ -60,86 +61,36 @@ class MyClass { //задача очереди: создать и добавит�
 }
 
 
-let aa = new MyClass(simulator);
+let aa; //= new MyClass(abonent.writer); //параметр - функция отправки сообщения
 
-aa.add(gen, 13, pt);
-aa.add(gen, 23);
-aa.add(gen, 33, pt);
+//aa.add(gen,  pt); //func, callback
+//aa.add(gen,  pt);
+//aa.add(gen,  pt);
 
-function *gen(data){
-	this.writer(data);
-	this.timer=setTimeout(()=>this.next(), 2000);
-	let answer = yield;
+function *gen(data, comment){ //типовая одноразовая команда с выводом результата в окно
+	this.writer.write(data); //отправляем подготовленное сообщение
+	this.timer=setTimeout(()=>this.next( comment), 200);
+	let answer = yield; //получаем ответ от устройства
+	//обработка ответа
+	control.writer(comment+": "+ new TextDecoder("utf-8").decode(data)); //пишем в окно
 	this.next();
 }
+//aa.listener.call(aa, data) // пример правильного вызова слушателя
 
-function pt(data){
+
+function pt(data){  //передача сообщения внешнему API
 	console.log("print - "+data);
 }
 
-function simulator (data){
+//function simulator (data){
 	//console.log(data);
-	counter=counter+1;
-	if((counter+data)!=26){
-		setTimeout(()=>aa.listener.call(aa, counter+data), 500);
-	}
-}
+//	counter=counter+1;
+//	if((counter+data)!=26){
+//		setTimeout(()=>aa.listener.call(aa, counter+data), 500);
+//	}
+//}
 
 
-
-let comm={
-	ax_get(func, url){//стандартная функция отправки сообщения
-		let req=new XMLHttpRequest();
-		req.addEventListener('load', control[func]);//привязали контекст
-		req.open('GET', url, true);
-		req.setRequestHeader('Content-Type', 'application/json');
-		req.responseType = 'text';
-		req.send();
-	},
-	ax(form, url){//стандартная функция отправки сообщения
-		let req=new XMLHttpRequest();
-		req.addEventListener('load', comm.show_ax);//привязали контекст
-		//req.upload;
-		req.open('POST', url, true);
-		//req.setRequestHeader('Content-Type', 'multipart/form-data');//'application/json');
-		//req.setRequestHeader('Content-Type', 'application/json');
-		
-		
-		req.responseType = 'text';
-		//req.send(form);
-		let frm = window.open(req.send(form), "we", "");
-		//req.onload=comm.err;
-	},
-
-	err(e){
-		let data=e.target;
-		if(data.status!=200){
-			if(data.status>399){
-				console.log(data.status);
-			}
-			if(data.response=="Wrong login or password"||data.response=="Wrong domain, session or session expired"){
-				control.on_on(['first_menu', 'manual_munu', 'manual_login']);
-			}
-		}
-	},
-    show_ax(e) {//стандартная функция получения сообщения
-        let data=e.target;
-		let obj;
-		let isValidJSON=true;
-        if(data.status==200){
-			try { obj=JSON.parse(data.response)} catch { isValidJSON = false };
-			if(!isValidJSON){
-				obj=data.response;
-				
-			}
-			//return obj;
-			console.log(data.response);
-		}
-    },
-	
-
-
-};
 
 let links={ //связываем действия пользователя с функциями
 	click:{}, //кнопки
@@ -202,7 +153,9 @@ let control={
 		}else{
 			link.dataset.in=1;
 		}
-		add_step(new Step(data, abonent.writer, "write",'',"Power" ));
+		//add_step(new Step(data, abonent.writer, "write",'',"Power" ));
+		//let func=gen.call(gen, data, "Power");
+		aa.add(gen, data, "Power", pt);
 	},
 	beep(link){
 		let data = new Uint8Array([0x53, 0x0D]); //S
@@ -304,7 +257,7 @@ let control={
 		}
 
 	},
-	recovery(link){
+	recovery(link){ //подключение (выбор) ком порта (канал ввода вывода)
 		let filters = [
 			{ usbVendorId: 8580, usbProductId: 17 }
 		];
@@ -315,7 +268,7 @@ let control={
 			parity: "none",
 			flowControl: "none"
 		};
-		(async () => {
+		(async () => { //ввод и вывод данных порта
 			abonent.port = await navigator.serial.requestPort(); //выбираем порт
 			//console.log(abonent.port.getInfo());
 			await abonent.port.open(settings); //настройки
@@ -323,8 +276,8 @@ let control={
 			for(let i in links.click){
 				links.click[i].style.opacity=1;
 			}
-			abonent.writer = abonent.port.writable.getWriter();
-			
+			abonent.writer = abonent.port.writable.getWriter(); //функция записи в порт
+			aa= new MyClass(abonent.writer); //параметр - функция отправки сообщения
 			//const textDecoder = new TextDecoderStream();
 			//const readableStreamClosed = abonent.port.readable.pipeTo(textDecoder.writable);
 			//const reader = textDecoder.readable.getReader();
@@ -335,16 +288,19 @@ let control={
 					reader.releaseLock();
 					break;
 				}
-				buffer.show(value);
+				//buffer.show(value);
+				aa.listener.call(aa, value)//вызов функции чтения из порта
 			}
 		})();		
 	},
-
+	writer(data){
+		pole.innerText=pole.innerText+data+"\r\n";
+	}
 };
 
 
-function start(){
 
+function start(){
 	list=document.querySelectorAll('div[data-click]');
 	for(let i=0; i<list.length; i++){
 		links.click[list[i].dataset.click]=list[i];
