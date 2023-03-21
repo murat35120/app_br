@@ -77,15 +77,9 @@ function *gen_o(data, comment){ //типовая одноразовая кома
 }
 
 function *gen_i(data, comment){ //команда с переходом по времени выводом результата в окно
-	let txt="";
 	this.writer.write(data); //отправляем подготовленное сообщение
-	let timer=setTimeout(()=>{control.writer_i( txt); this.next();}, 100);
-	let answer = yield; //получаем ответ от устройства
-	txt=txt+new TextDecoder("utf-8").decode(answer); //пишем в окно
-	while(true) {
-		answer = yield;
-		txt=txt+new TextDecoder("utf-8").decode(answer); 
-	}
+	let answer = yield* wait();
+	control.writer_i(answer);
 }
 function *gen_get(data, comment){ //команда с переходом по времени выводом результата в окно
 	let txt="";
@@ -97,7 +91,20 @@ function *gen_get(data, comment){ //команда с переходом по в
 		answer = yield;
 		txt=txt+new TextDecoder("utf-8").decode(answer); 
 	}
+	//тут я должен парсить ответ и разложить его по полдям
 }
+
+function *wait(){
+	let i=1;
+	let txt="";
+	setTimeout(()=>i=0, 100);
+	while(i) {
+		answer = yield;
+		txt=txt+new TextDecoder("utf-8").decode(answer); 
+	}
+	return txt;
+}
+
 function pt(data){  //передача сообщения внешнему API
 	console.log("print - "+new TextDecoder("utf-8").decode(data));
 }
