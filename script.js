@@ -4,8 +4,6 @@ let abonent={
 	domain:'',
 	port:''
 };
-//let counter=0;
-
 
 class MyClass { //задача очереди: создать и добавить генераторы,по очереди перебирать их
 	constructor(writer) {
@@ -63,33 +61,17 @@ class MyClass { //задача очереди: создать и добавит�
 
 let aa; //= new MyClass(abonent.writer); //параметр - функция отправки сообщения
 
-//aa.add(gen,  pt); //func, callback
-//aa.add(gen,  pt);
-//aa.add(gen,  pt);
-
 function *gen(data, comment){ //типовая одноразовая команда с выводом результата в окно
 	this.writer.write(data); //отправляем подготовленное сообщение
 	this.timer=setTimeout(()=>this.next( comment), 200);
 	let answer = yield; //получаем ответ от устройства
-	//обработка ответа
 	control.writer(comment+": "+ new TextDecoder("utf-8").decode(data)); //пишем в окно
 	this.next();
 }
-//aa.listener.call(aa, data) // пример правильного вызова слушателя
-
 
 function pt(data){  //передача сообщения внешнему API
 	console.log("print - "+data);
 }
-
-//function simulator (data){
-	//console.log(data);
-//	counter=counter+1;
-//	if((counter+data)!=26){
-//		setTimeout(()=>aa.listener.call(aa, counter+data), 500);
-//	}
-//}
-
 
 
 let links={ //связываем действия пользователя с функциями
@@ -142,7 +124,6 @@ let control={
 	},
 	typical(link){
 		let data = new Uint8Array([0x69, 0x0D]); //i
-		//abonent.writer.write(data);
 		add_step(new Step(data, abonent.writer, "write",'','' ));
 	},
 	power(link){
@@ -153,8 +134,6 @@ let control={
 		}else{
 			link.dataset.in=1;
 		}
-		//add_step(new Step(data, abonent.writer, "write",'',"Power" ));
-		//let func=gen.call(gen, data, "Power");
 		aa.add(gen, data, "Power", pt);
 	},
 	beep(link){
@@ -269,26 +248,20 @@ let control={
 			flowControl: "none"
 		};
 		(async () => { //ввод и вывод данных порта
-			abonent.port = await navigator.serial.requestPort(); //выбираем порт
-			//console.log(abonent.port.getInfo());
-			await abonent.port.open(settings); //настройки
-			//const reader = abonent.port.readable.getReader();
+			port = await navigator.serial.requestPort({filters}); //выбираем порт
+			await port.open(settings); //настройки
 			for(let i in links.click){
 				links.click[i].style.opacity=1;
 			}
-			abonent.writer = abonent.port.writable.getWriter(); //функция записи в порт
-			aa= new MyClass(abonent.writer); //параметр - функция отправки сообщения
-			//const textDecoder = new TextDecoderStream();
-			//const readableStreamClosed = abonent.port.readable.pipeTo(textDecoder.writable);
-			//const reader = textDecoder.readable.getReader();
-			const reader = abonent.port.readable.getReader();
+			writer = port.writable.getWriter(); //функция записи в порт
+			aa= new MyClass(writer); //параметр - функция отправки сообщения
+			const reader = port.readable.getReader();
 			while (true) { //слушаем порт
 				let { value, done } = await reader.read();
 				if (done) {
 					reader.releaseLock();
 					break;
 				}
-				//buffer.show(value);
 				aa.listener.call(aa, value)//вызов функции чтения из порта
 			}
 		})();		
