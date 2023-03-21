@@ -65,12 +65,21 @@ function *gen(data, comment){ //типовая одноразовая коман
 	this.writer.write(data); //отправляем подготовленное сообщение
 	this.timer=setTimeout(()=>this.next( comment), 200);
 	let answer = yield; //получаем ответ от устройства
-	control.writer(comment+": "+ new TextDecoder("utf-8").decode(data)); //пишем в окно
+	control.writer(comment+": "+ new TextDecoder("utf-8").decode(answer)); //пишем в окно
+	this.next();
+}
+function *gen_i(data, comment){ //команда с переходом по времени выводом результата в окно
+	this.writer.write(data); //отправляем подготовленное сообщение
+	this.timer=setTimeout(()=>this.next( comment), 300);
+	let answer = yield; //получаем ответ от устройства
+	control.writer(comment+": "+ new TextDecoder("utf-8").decode(answer)); //пишем в окно
+	answer = yield; //получаем ответ от устройства
+	control.writer(comment+": "+ new TextDecoder("utf-8").decode(answer)); //пишем в окно
 	this.next();
 }
 
 function pt(data){  //передача сообщения внешнему API
-	console.log("print - "+data);
+	console.log("print - "+new TextDecoder("utf-8").decode(data));
 }
 
 
@@ -112,19 +121,9 @@ let control={
 		}
 		return bfull;
 	},
-	send1(){
-	    let ab = new FormData();//создали объект форма
-		for(let i in links.felds){
-            ab.append(i, links.felds[i].value);
-		}
-        let file=document.querySelector('.centre>select');
-        ab.append('file', myfile.files[0]);
-        url='php/ax.php';
-		comm.ax(ab, url);
-	},
 	typical(link){
 		let data = new Uint8Array([0x69, 0x0D]); //i
-		add_step(new Step(data, abonent.writer, "write",'','' ));
+		aa.add(gen_i, data, '');
 	},
 	power(link){
 		let data = new Uint8Array([0x41, 0x0D]); //A
@@ -134,7 +133,7 @@ let control={
 		}else{
 			link.dataset.in=1;
 		}
-		aa.add(gen, data, "Power", pt);
+		aa.add(gen, data, "Power");
 	},
 	beep(link){
 		let data = new Uint8Array([0x53, 0x0D]); //S
@@ -144,7 +143,7 @@ let control={
 		}else{
 			link.dataset.in=1;
 		}
-		add_step(new Step(data, abonent.writer, "write",'',"Beep" ));
+		aa.add(gen, data, "Beep");
 	},
 	ledr(link){
 		let data = new Uint8Array([0x44, 0x0D]); //A
@@ -154,7 +153,7 @@ let control={
 		}else{
 			link.dataset.in=1;
 		}
-		add_step(new Step(data, abonent.writer, "write",'',"Led-R" ));
+		aa.add(gen, data, "Led-R");
 	},
 	ledg(link){
 		let data = new Uint8Array([0x46, 0x0D]); //S
@@ -164,9 +163,8 @@ let control={
 		}else{
 			link.dataset.in=1;
 		}
-		add_step(new Step(data, abonent.writer, "write",'',"Led-G" ));
+		aa.add(gen, data, "Led-G");
 	},
-
 	wiegand(link){
 		let cmd = new TextEncoder().encode("OW1");
 		let encoded = new TextEncoder().encode(num_key.value);
@@ -183,7 +181,7 @@ let control={
 		}
 		let enter = new Uint8Array([0x0D]);
 		let data = control.buff_sum([cmd, sub, enter]);
-		add_step(new Step(data, abonent.writer, "write",'',"Wiegand "+num_key.value ));
+		aa.add(gen, data, "Wiegand "+num_key.value);
 	},
 	dallas(link){},
 	d_start(link){
@@ -195,7 +193,7 @@ let control={
 		let data = control.buff_sum([cmd, sub, enter]);
 		abonent.start=1;
 		abonent.go=1;
-		add_step(new Step(data, abonent.writer, "write",'',"Dallas "+num_key.value+ " start" ));
+		aa.add(gen, data, "Dallas "+num_key.value+ " start");
 	},
 	d_stop(){
 		if(abonent.start==1){
@@ -203,7 +201,7 @@ let control={
 			let enter = new Uint8Array([0x0D]);
 			let data = control.buff_sum([cmd, enter]);
 			abonent.start=0;
-		add_step(new Step(data, abonent.writer, "write",'',"Dallas stop" ));
+		aa.add(gen, data, "Dallas stop");
 		}
 	},
 	d_end(){
@@ -212,7 +210,7 @@ let control={
 			let enter = new Uint8Array([0x0D]);
 			let data = control.buff_sum([cmd, enter]);
 			abonent.go=0;
-		add_step(new Step(data, abonent.writer, "write",'',"Write end" ));
+		aa.add(gen, data, "Write end");
 		}
 	},
 	clear(link){
