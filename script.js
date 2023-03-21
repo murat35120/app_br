@@ -68,16 +68,36 @@ function *gen(data, comment){ //типовая одноразовая коман
 	control.writer(comment+": "+ new TextDecoder("utf-8").decode(answer)); //пишем в окно
 	this.next();
 }
-function *gen_i(data, comment){ //команда с переходом по времени выводом результата в окно
+function *gen_o(data, comment){ //типовая одноразовая команда с выводом результата в окно
 	this.writer.write(data); //отправляем подготовленное сообщение
-	this.timer=setTimeout(()=>this.next( comment), 300);
+	this.timer=setTimeout(()=>this.next( comment), 200);
 	let answer = yield; //получаем ответ от устройства
-	control.writer(comment+": "+ new TextDecoder("utf-8").decode(answer)); //пишем в окно
-	answer = yield; //получаем ответ от устройства
-	control.writer(comment+": "+ new TextDecoder("utf-8").decode(answer)); //пишем в окно
+	control.writer_i(comment+": "+ new TextDecoder("utf-8").decode(answer)); //пишем в окно
 	this.next();
 }
 
+function *gen_i(data, comment){ //команда с переходом по времени выводом результата в окно
+	let txt="";
+	this.writer.write(data); //отправляем подготовленное сообщение
+	let timer=setTimeout(()=>{control.writer_i( txt); this.next();}, 100);
+	let answer = yield; //получаем ответ от устройства
+	txt=txt+new TextDecoder("utf-8").decode(answer); //пишем в окно
+	while(true) {
+		answer = yield;
+		txt=txt+new TextDecoder("utf-8").decode(answer); 
+	}
+}
+function *gen_get(data, comment){ //команда с переходом по времени выводом результата в окно
+	let txt="";
+	this.writer.write(data); //отправляем подготовленное сообщение
+	let timer=setTimeout(()=>{control.writer_i( txt); this.next();}, 100);
+	let answer = yield; //получаем ответ от устройства
+	txt=txt+new TextDecoder("utf-8").decode(answer); //пишем в окно
+	while(true) {
+		answer = yield;
+		txt=txt+new TextDecoder("utf-8").decode(answer); 
+	}
+}
 function pt(data){  //передача сообщения внешнему API
 	console.log("print - "+new TextDecoder("utf-8").decode(data));
 }
@@ -181,7 +201,7 @@ let control={
 		}
 		let enter = new Uint8Array([0x0D]);
 		let data = control.buff_sum([cmd, sub, enter]);
-		aa.add(gen, data, "Wiegand "+num_key.value);
+		aa.add(gen_o, data, "Wiegand "+num_key.value);
 	},
 	dallas(link){},
 	d_start(link){
@@ -193,7 +213,7 @@ let control={
 		let data = control.buff_sum([cmd, sub, enter]);
 		abonent.start=1;
 		abonent.go=1;
-		aa.add(gen, data, "Dallas "+num_key.value+ " start");
+		aa.add(gen_o, data, "Dallas "+num_key.value+ " start");
 	},
 	d_stop(){
 		if(abonent.start==1){
@@ -201,7 +221,7 @@ let control={
 			let enter = new Uint8Array([0x0D]);
 			let data = control.buff_sum([cmd, enter]);
 			abonent.start=0;
-		aa.add(gen, data, "Dallas stop");
+		aa.add(gen_o, data, "Dallas stop");
 		}
 	},
 	d_end(){
@@ -210,8 +230,20 @@ let control={
 			let enter = new Uint8Array([0x0D]);
 			let data = control.buff_sum([cmd, enter]);
 			abonent.go=0;
-		aa.add(gen, data, "Write end");
+		aa.add(gen_o, data, "Write end");
 		}
+	},
+	get(){
+		let cmd = new TextEncoder().encode("hGET");
+		let enter = new Uint8Array([0x0D]);
+		let data = control.buff_sum([cmd, enter]);
+		aa.add(gen_get, data, "Get settings");
+	},
+	set(){
+		let cmd = new TextEncoder().encode("hGET");
+		let enter = new Uint8Array([0x0D]);
+		let data = control.buff_sum([cmd, enter]);
+		aa.add(gen_i, data);
 	},
 	clear(link){
 		pole.innerText="";
@@ -222,15 +254,15 @@ let control={
 			for(let i in links.formats){
 				links.formats[i].style.display="none";
 			}
-			links.click["in"].style.visibility="hidden";
-			links.click["out"].style.visibility="hidden";
+			links.click["set"].style.visibility="hidden";
+			links.click["get"].style.visibility="hidden";
 		}else{
 			link.dataset.in=1;
 			for(let i in links.formats){
 				links.formats[i].style.display="flex";
 			}
-			links.click["in"].style.visibility="visible";
-			links.click["out"].style.visibility="visible";
+			links.click["set"].style.visibility="visible";
+			links.click["get"].style.visibility="visible";
 		}
 
 	},
@@ -266,6 +298,9 @@ let control={
 	},
 	writer(data){
 		pole.innerText=pole.innerText+data+"\r\n";
+	},
+	writer_i(data){
+		pole.innerText=pole.innerText+data;
 	}
 };
 

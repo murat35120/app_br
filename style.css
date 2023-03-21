@@ -36,7 +36,7 @@
 }
 
  /*4 */
-.centre>div[data-line='pole'], .centre{
+.centre>div[data-line='pole'], .centre,  .section{
     flex-grow: 1;  
 }
 
@@ -135,10 +135,10 @@ body{
     background: url(fon.jpg) repeat; /* Параметры фона */  
 }
 
-div[data-click='out'] {
+div[data-click='get'] {
     background: url(png/out.png) no-repeat;
 }
-div[data-click='in'] {
+div[data-click='set'] {
     background: url(png/in.png) no-repeat;
 }
 
@@ -176,6 +176,6 @@ div[data-click] {
 .centre>div[data-line="formats"]{
 
 }
-div[data-click="in"], div[data-click="out"]{
+div[data-click="get"], div[data-click="set"]{
 	visibility: hidden;
 }
