@@ -2,7 +2,8 @@ let abonent={
 	key:'',
 	session:'',	
 	domain:'',
-	port:''
+	port:'',
+	run:1,
 };
 
 class MyClass { //задача очереди: создать и добавить генераторы,по очереди перебирать их
@@ -24,13 +25,13 @@ class MyClass { //задача очереди: создать и добавит�
 			this.buffer.gen.next(data);
 		}
 	}
-	add(func,  data, comment, callback) {//функция добавления в очередь
-		let gen;
-		if(data){
-			gen=func.call(this, data, comment);
-		}else{
-			gen=func.call(this,'',comment);
-		}
+	add(func,  data, writer, comment, callback) {//функция добавления в очередь
+		//let gen;
+		//if(data){
+		let gen=func.call(this, data, writer, comment);
+		//}else{
+		//	gen=func.call(this,'', writer, comment);
+		//}
 		let step={gen, callback};
 		if(this.done){
 			this.queue.clear();
@@ -61,48 +62,15 @@ class MyClass { //задача очереди: создать и добавит�
 
 let aa; //= new MyClass(abonent.writer); //параметр - функция отправки сообщения
 
-function *gen(data, comment){ //типовая одноразовая команда с выводом результата в окно
-	this.writer.write(data); //отправляем подготовленное сообщение
-	this.timer=setTimeout(()=>this.next( comment), 200);
-	let answer = yield; //получаем ответ от устройства
-	control.writer(comment+": "+ new TextDecoder("utf-8").decode(answer)); //пишем в окно
-	this.next();
-}
-function *gen_o(data, comment){ //типовая одноразовая команда с выводом результата в окно
-	this.writer.write(data); //отправляем подготовленное сообщение
-	this.timer=setTimeout(()=>this.next( comment), 200);
-	let answer = yield; //получаем ответ от устройства
-	control.writer_i(comment+": "+ new TextDecoder("utf-8").decode(answer)); //пишем в окно
-	this.next();
-}
-
-function *gen_i(data, comment){ //команда с переходом по времени выводом результата в окно
-	this.writer.write(data); //отправляем подготовленное сообщение
-	let answer = yield* wait();
-	control.writer_i(answer);
-}
-function *gen_get(data, comment){ //команда с переходом по времени выводом результата в окно
+function *gen(data, writer, comment){ //команда с переходом по времени выводом результата в окно
 	let txt="";
 	this.writer.write(data); //отправляем подготовленное сообщение
-	let timer=setTimeout(()=>{control.writer_i( txt); this.next();}, 100);
+	let timer=setTimeout(()=>{control[writer]( txt, comment); this.next();}, 100);
 	let answer = yield; //получаем ответ от устройства
-	txt=txt+new TextDecoder("utf-8").decode(answer); //пишем в окно
 	while(true) {
-		answer = yield;
 		txt=txt+new TextDecoder("utf-8").decode(answer); 
-	}
-	//тут я должен парсить ответ и разложить его по полдям
-}
-
-function *wait(){
-	let i=1;
-	let txt="";
-	setTimeout(()=>i=0, 100);
-	while(i) {
 		answer = yield;
-		txt=txt+new TextDecoder("utf-8").decode(answer); 
 	}
-	return txt;
 }
 
 function pt(data){  //передача сообщения внешнему API
@@ -150,7 +118,7 @@ let control={
 	},
 	typical(link){
 		let data = new Uint8Array([0x69, 0x0D]); //i
-		aa.add(gen_i, data, '');
+		aa.add(gen, data, "writer", "","");//функция генератор, данные, обработчик отвера, комментарий, внешний обработчик ответа
 	},
 	power(link){
 		let data = new Uint8Array([0x41, 0x0D]); //A
@@ -160,7 +128,7 @@ let control={
 		}else{
 			link.dataset.in=1;
 		}
-		aa.add(gen, data, "Power");
+		aa.add(gen, data, "writer", "Power","");
 	},
 	beep(link){
 		let data = new Uint8Array([0x53, 0x0D]); //S
@@ -170,7 +138,7 @@ let control={
 		}else{
 			link.dataset.in=1;
 		}
-		aa.add(gen, data, "Beep");
+		aa.add(gen, data, "writer", "Beep","");
 	},
 	ledr(link){
 		let data = new Uint8Array([0x44, 0x0D]); //A
@@ -180,7 +148,7 @@ let control={
 		}else{
 			link.dataset.in=1;
 		}
-		aa.add(gen, data, "Led-R");
+		aa.add(gen, data, "writer", "LED-R","");
 	},
 	ledg(link){
 		let data = new Uint8Array([0x46, 0x0D]); //S
@@ -190,7 +158,7 @@ let control={
 		}else{
 			link.dataset.in=1;
 		}
-		aa.add(gen, data, "Led-G");
+		aa.add(gen, data, "writer", "LED-G","");
 	},
 	wiegand(link){
 		let cmd = new TextEncoder().encode("OW1");
@@ -208,7 +176,7 @@ let control={
 		}
 		let enter = new Uint8Array([0x0D]);
 		let data = control.buff_sum([cmd, sub, enter]);
-		aa.add(gen_o, data, "Wiegand "+num_key.value);
+		aa.add(gen, data, "writer", "Wiegand "+num_key.value,"");
 	},
 	dallas(link){},
 	d_start(link){
@@ -220,7 +188,7 @@ let control={
 		let data = control.buff_sum([cmd, sub, enter]);
 		abonent.start=1;
 		abonent.go=1;
-		aa.add(gen_o, data, "Dallas "+num_key.value+ " start");
+		aa.add(gen, data, "writer", "Dallas "+num_key.value+ " start","");
 	},
 	d_stop(){
 		if(abonent.start==1){
@@ -228,7 +196,7 @@ let control={
 			let enter = new Uint8Array([0x0D]);
 			let data = control.buff_sum([cmd, enter]);
 			abonent.start=0;
-		aa.add(gen_o, data, "Dallas stop");
+		aa.add(gen, data, "writer", "Dallas stop","");
 		}
 	},
 	d_end(){
@@ -237,14 +205,14 @@ let control={
 			let enter = new Uint8Array([0x0D]);
 			let data = control.buff_sum([cmd, enter]);
 			abonent.go=0;
-		aa.add(gen_o, data, "Write end");
+		aa.add(gen, data, "writer", "Write end","");
 		}
 	},
 	get(){
 		let cmd = new TextEncoder().encode("hGET");
 		let enter = new Uint8Array([0x0D]);
 		let data = control.buff_sum([cmd, enter]);
-		aa.add(gen_get, data, "Get settings");
+		aa.add(gen, data, "writer", "Get settings","");
 	},
 	set(){
 		let cmd = new TextEncoder().encode("hGET");
@@ -303,12 +271,13 @@ let control={
 			}
 		})();		
 	},
-	writer(data){
-		pole.innerText=pole.innerText+data+"\r\n";
-	},
-	writer_i(data){
+	writer(data, comment){
+		if(comment){
+			data=comment+" "+data+"\r\n";
+		}
 		pole.innerText=pole.innerText+data;
-	}
+	},
+	
 };
 
 
